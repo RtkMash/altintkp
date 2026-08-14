@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Altın Hesapla</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: #0b0f14;
+    color: white;
+    padding: 40px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
+
+h1 {
+    margin: 0 0 8px;
+    font-size: 34px;
+}
+
+.subtitle {
+    color: #8b949e;
+    margin-bottom: 30px;
+}
+
+.main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.card {
+    background: #11161d;
+    border: 1px solid #252c35;
+    border-radius: 18px;
+    padding: 25px;
+}
+
+.card-title {
+    font-size: 21px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.asset {
+    display: grid;
+    grid-template-columns: 1fr 130px 45px;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+select,
+input {
+    width: 100%;
+    height: 45px;
+    padding: 0 12px;
+    background: #0b0f14;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    color: white;
+    font-size: 15px;
+    outline: none;
+}
+
+select:focus,
+input:focus {
+    border-color: #58a6ff;
+}
+
+.remove {
+    height: 45px;
+    border: 0;
+    border-radius: 10px;
+    background: #da3633;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+button {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.add {
+    flex: 1;
+    height: 48px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    color: white;
+}
+
+.calculate {
+    flex: 1;
+    height: 48px;
+    background: #238636;
+    border: 0;
+    border-radius: 10px;
+    color: white;
+}
+
+.result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 17px 0;
+    border-bottom: 1px solid #252c35;
+}
+
+.result-name {
+    font-weight: bold;
+}
+
+.result-detail {
+    color: #8b949e;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.result-value {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 2px solid #30363d;
+}
+
+.total-title {
+    color: #8b949e;
+    font-size: 18px;
+}
+
+.total-value {
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.status {
+    margin-top: 18px;
+    font-size: 13px;
+    color: #8b949e;
+}
+
+@media(max-width: 800px) {
+
+    body {
+        padding: 20px;
+    }
+
+    .main {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>💰 Altın Hesapla</h1>
+
+    <div class="subtitle">
+        Altın ve döviz Kurlarını Kolay'ca takip et
+    </div>
+
+
+    <div class="main">
+
+        <!-- SOL -->
+
+        <div class="card">
+
+            <div class="card-title">
+                Varlıklarım
+            </div>
+
+            <div id="assets"></div>
+
+            <div class="buttons">
+
+                <button
+                    class="add"
+                    onclick="addAsset()">
+                    + Varlık Ekle
+                </button>
+
+                <button
+                    class="calculate"
+                    onclick="calculate()">
+                    HESAPLA
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- SAĞ -->
+
+        <div class="card">
+
+            <div class="card-title">
+                Güncel Değer
+            </div>
+
+            <div id="results">
+                <div style="color:#8b949e">
+                    Henüz hesaplama yapılmadı.
+                </div>
+            </div>
+
+            <div class="total">
+
+                <div class="total-title">
+                    TOPLAM
+                </div>
+
+                <div
+                    class="total-value"
+                    id="total">
+                    ₺0,00
+                </div>
+
+            </div>
+
+            <div class="status" id="status">
+                🔄 Fiyatlar yükleniyor...
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* ==========================================
+   API
+========================================== */
+
+const API_URL =
+    "https://finans.truncgil.com/v3/today.json";
+
+
+/* ==========================================
+   FİYATLAR
+========================================== */
+
+let prices = {};
+
+
+/* ==========================================
+   İSİMLER
+========================================== */
+
+const names = {
+
+    quarter: "🪙 Çeyrek Altın",
+
+    gram: "🪙 Gram Altın",
+
+    euro: "💶 Euro",
+
+    dollar: "💵 Dolar",
+
+    sterling: "💷 Sterlin",
+
+    half: "🪙 Yarım Altın",
+
+    full: "🪙 Tam Altın",
+
+    silver: "⚪ Gümüş"
+
+};
+
+
+/* ==========================================
+   SATIŞ FİYATINI SAYIYA ÇEVİR
+========================================== */
+
+function number(value) {
+
+    if (typeof value === "number") {
+        return value;
+    }
+
+    if (!value) {
+        return 0;
+    }
+
+    let text = String(value)
+        .replace(/\s/g, "")
+        .replace(/\./g, "")
+        .replace(",", ".");
+
+    return parseFloat(text) || 0;
+}
+
+
+/* ==========================================
+   API'DEN FİYATLARI AL
+========================================== */
+
+async function loadPrices() {
+
+    const status =
+        document.getElementById("status");
+
+    status.innerText =
+        "🔄 Güncel fiyatlar alınıyor...";
+
+    try {
+
+        const response =
+            await fetch(API_URL, {
+                method: "GET",
+                cache: "no-store"
+            });
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "API HTTP " + response.status
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        console.log("API VERİSİ:", data);
+
+
+        /*
+        V3 API'de anahtar isimleri
+        */
+
+        prices.gram =
+            number(
+                data["gram-altin"]?.selling
+                ??
+                data["gram-altin"]?.Selling
+                ??
+                data["Gram Altın"]?.Satış
+            );
+
+
+        prices.quarter =
+            number(
+                data["ceyrek-altin"]?.selling
+                ??
+                data["ceyrek-altin"]?.Selling
+                ??
+                data["Çeyrek Altın"]?.Satış
+            );
+
+
+        prices.euro =
+            number(
+                data["EUR"]?.selling
+                ??
+                data["EUR"]?.Selling
+                ??
+                data["Euro"]?.Satış
+            );
+
+
+        prices.dollar =
+            number(
+                data["USD"]?.selling
+                ??
+                data["USD"]?.Selling
+                ??
+                data["Dolar"]?.Satış
+            );
+
+
+        prices.sterling =
+            number(
+                data["GBP"]?.selling
+                ??
+                data["GBP"]?.Selling
+                ??
+                data["Sterlin"]?.Satış
+            );
+
+
+        prices.half =
+            number(
+                data["yarim-altin"]?.selling
+                ??
+                data["yarim-altin"]?.Selling
+                ??
+                data["Yarım Altın"]?.Satış
+            );
+
+
+        prices.full =
+            number(
+                data["tam-altin"]?.selling
+                ??
+                data["tam-altin"]?.Selling
+                ??
+                data["Tam Altın"]?.Satış
+            );
+
+
+        prices.silver =
+            number(
+                data["gumus"]?.selling
+                ??
+                data["gumus"]?.Selling
+                ??
+                data["Gümüş"]?.Satış
+            );
+
+
+        console.log("FİYATLAR:", prices);
+
+
+        if (
+            prices.gram === 0 &&
+            prices.quarter === 0 &&
+            prices.euro === 0
+        ) {
+
+            throw new Error(
+                "API verisi geldi fakat fiyat alanları bulunamadı."
+            );
+
+        }
+
+
+        status.innerText =
+            "🟢 Güncel fiyatlar alındı.";
+
+
+    } catch(error) {
+
+        console.error(
+            "FİYAT HATASI:",
+            error
+        );
+
+
+        status.innerText =
+            "🔴 Fiyat alınamadı: " +
+            error.message;
+
+    }
+
+}
+
+
+/* ==========================================
+   VARLIK EKLE
+========================================== */
+
+function addAsset(type = "quarter", amount = 1) {
+
+    const container =
+        document.getElementById("assets");
+
+
+    const row =
+        document.createElement("div");
+
+    row.className = "asset";
+
+
+    row.innerHTML = `
+
+        <select class="asset-type">
+
+            <option value="quarter">
+                🪙 Çeyrek Altın
+            </option>
+
+            <option value="gram">
+                🪙 Gram Altın
+            </option>
+
+            <option value="euro">
+                💶 Euro
+            </option>
+
+            <option value="dollar">
+                💵 Dolar
+            </option>
+
+            <option value="sterling">
+                💷 Sterlin
+            </option>
+
+            <option value="half">
+                🪙 Yarım Altın
+            </option>
+
+            <option value="full">
+                🪙 Tam Altın
+            </option>
+
+            <option value="silver">
+                ⚪ Gümüş
+            </option>
+
+        </select>
+
+
+        <input
+            class="asset-amount"
+            type="number"
+            min="0"
+            step="0.01"
+            value="${amount}"
+            placeholder="Adet"
+        >
+
+
+        <button
+            class="remove"
+            onclick="this.parentElement.remove()">
+            ×
+        </button>
+
+    `;
+
+
+    row.querySelector(".asset-type").value =
+        type;
+
+
+    container.appendChild(row);
+
+}
+
+
+/* ==========================================
+   PARA FORMAT
+========================================== */
+
+function money(value) {
+
+    return new Intl.NumberFormat(
+        "tr-TR",
+        {
+            style: "currency",
+            currency: "TRY",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    ).format(value);
+
+}
+
+
+/* ==========================================
+   HESAPLA
+========================================== */
+
+function calculate() {
+
+    const rows =
+        document.querySelectorAll(".asset");
+
+
+    const results =
+        document.getElementById("results");
+
+
+    let total = 0;
+
+    results.innerHTML = "";
+
+
+    rows.forEach(row => {
+
+        const type =
+            row.querySelector(
+                ".asset-type"
+            ).value;
+
+
+        const amount =
+            parseFloat(
+                row.querySelector(
+                    ".asset-amount"
+                ).value
+            );
+
+
+        if (
+            !amount ||
+            amount <= 0
+        ) {
+            return;
+        }
+
+
+        const unitPrice =
+            prices[type];
+
+
+        if (
+            !unitPrice ||
+            unitPrice <= 0
+        ) {
+
+            const error =
+                document.createElement("div");
+
+            error.className =
+                "result";
+
+            error.innerHTML = `
+
+                <div>
+
+                    <div class="result-name">
+                        ${names[type]}
+                    </div>
+
+                    <div class="result-detail">
+                        Fiyat bulunamadı
+                    </div>
+
+                </div>
+
+            `;
+
+            results.appendChild(error);
+
+            return;
+
+        }
+
+
+        const value =
+            amount * unitPrice;
+
+
+        total += value;
+
+
+        const result =
+            document.createElement("div");
+
+        result.className =
+            "result";
+
+
+        result.innerHTML = `
+
+            <div>
+
+                <div class="result-name">
+                    ${names[type]}
+                </div>
+
+                <div class="result-detail">
+
+                    ${amount} adet ×
+                    ${money(unitPrice)}
+
+                </div>
+
+            </div>
+
+
+            <div class="result-value">
+
+                ${money(value)}
+
+            </div>
+
+        `;
+
+
+        results.appendChild(result);
+
+    });
+
+
+    document.getElementById("total")
+        .innerText = money(total);
+
+}
+
+
+/* ==========================================
+   BAŞLANGIÇTA SENİN VARLIKLARIN
+========================================== */
+
+addAsset("quarter", 1);
+
+addAsset("gram", 2);
+
+addAsset("euro", 10);
+
+
+/* ==========================================
+   FİYATLARI AL
+========================================== */
+
+loadPrices();
+
+
+/* ==========================================
+   5 DAKİKADA BİR YENİLE
+========================================== */
+
+setInterval(
+    loadPrices,
+    5 * 60 * 1000
+);
+
+</script>
+
+</body>
+</html>
